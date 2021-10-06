@@ -26,14 +26,20 @@ impl<'a> Queue<'a> {
         }
     }
 
+    #[inline]
     fn append(&mut self, player: &'a str) {
         self.queue.push_back(player);
+    }
+    
+    #[inline]
+    fn nextone(&mut self) -> Option<&'a str> {
+        self.queue.pop_front()
     }
 
     fn next(&mut self) -> Vec<&'a str> {
         let mut result = Vec::new();
-        for i in 0..self.players {
-            if let Some(p) = self.queue.pop_front() {
+        for _ in 0..self.players {
+            if let Some(p) = self.nextone() {
                 result.push(p)
             }
         }
@@ -73,9 +79,27 @@ mod queue_tests {
     }
 
     #[test]
-    fn test_next() {
+    fn test_nextone() {
         let mut queue = Queue::new(0, "maimai", 2, vecdeque!["player1"]);
-        queue.next();
+        assert_eq!(queue.nextone(), Some("player1"));
+        assert_eq!(queue.nextone(), None);
+        assert_eq!(
+            queue,
+            Queue {
+                id: 0,
+                game: "maimai".to_owned(),
+                players: 2,
+                queue: VecDeque::new(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_next() {
+        let mut queue = Queue::new(0, "maimai", 2, vecdeque!["player1", "player2", "player3"]);
+        assert_eq!(queue.next(), vec!["player1", "player2"]);
+        assert_eq!(queue.next(), vec!["player3"]);
+        assert_eq!(queue.next(), Vec::<&str>::new());
         assert_eq!(
             queue,
             Queue {
