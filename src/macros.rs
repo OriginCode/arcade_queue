@@ -1,3 +1,4 @@
+// from https://github.com/bluss/maplit/pull/31
 #[macro_export]
 macro_rules! vecdeque {
     (@single $($x:tt)*) => (());
