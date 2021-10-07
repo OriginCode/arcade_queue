@@ -1,4 +1,4 @@
-//! A player queue for games
+//! A player queue for arcade games
 //!
 //! # Examples
 //!
