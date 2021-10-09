@@ -24,6 +24,7 @@ pub struct Queue<'a> {
 #[derive(Debug)]
 pub enum Error {
     TooLessPlayersError(String),
+    AlreadyInQueueError(String),
 }
 
 impl<'a> fmt::Display for Queue<'a> {
@@ -76,14 +77,42 @@ impl<'a> Queue<'a> {
     ///
     /// let mut q = Queue::new("", 1).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
+    /// q.join("player1");
+    /// q.join("player2");
     ///
     /// assert_eq!(q.format_queue(), "player1 player2");
     /// ```
     #[inline]
-    pub fn append(&mut self, player: &'a str) {
-        self.queue.push_back(player);
+    pub fn join(&mut self, player: &'a str) -> Result<(), Error> {
+        if !self.queue.contains(&player) {
+            self.queue.push_back(player);
+            Ok(())
+        } else {
+            Err(Error::AlreadyInQueueError(
+                "The player is already in the queue".to_owned(),
+            ))
+        }
+    }
+
+    /// Remove a player from the queue.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use arcade_queue::Queue;
+    ///
+    /// let mut q = Queue::new("", 1).unwrap();
+    ///
+    /// q.join("player1");
+    /// q.join("player2");
+    ///
+    /// assert_eq!(q.format_queue(), "player1 player2");
+    /// ```
+    #[inline]
+    pub fn quit(&mut self, player: &'a str) {
+        self.queue.retain(|p| *p != player);
     }
 
     /// Yields the next one player.
@@ -97,8 +126,8 @@ impl<'a> Queue<'a> {
     ///
     /// let mut q = Queue::new("", 1).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
+    /// q.join("player1");
+    /// q.join("player2");
     ///
     /// assert_eq!(q.nextone().unwrap(), "player1");
     /// ```
@@ -118,19 +147,19 @@ impl<'a> Queue<'a> {
     ///
     /// let mut q = Queue::new("", 1).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
+    /// q.join("player1");
+    /// q.join("player2");
     ///
-    /// assert_eq!(q.nextone_to_back().unwrap(), "player1");
+    /// assert_eq!(q.nextone_to_back().unwrap().unwrap(), "player1");
     /// assert_eq!(q.get_queue(), vec!["player2", "player1"]);
     /// ```
     #[inline]
-    pub fn nextone_to_back(&mut self) -> Option<&'a str> {
+    pub fn nextone_to_back(&mut self) -> Result<Option<&'a str>, Error> {
         let player = self.queue.pop_front();
         if let Some(p) = player {
-            self.queue.push_back(p);
+            self.join(p)?;
         }
-        player
+        Ok(player)
     }
 
     /// Yields the next group of players.
@@ -143,9 +172,9 @@ impl<'a> Queue<'a> {
     /// use arcade_queue::Queue;
     /// let mut q = Queue::new("", 2).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
-    /// q.append("player3");
+    /// q.join("player1");
+    /// q.join("player2");
+    /// q.join("player3");
     ///
     /// assert_eq!(q.next_group(), vec!["player1", "player2"]);
     /// ```
@@ -169,25 +198,25 @@ impl<'a> Queue<'a> {
     /// use arcade_queue::Queue;
     /// let mut q = Queue::new("", 2).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
-    /// q.append("player3");
+    /// q.join("player1");
+    /// q.join("player2");
+    /// q.join("player3");
     ///
-    /// assert_eq!(q.next_group_to_back(), vec!["player1", "player2"]);
+    /// assert_eq!(q.next_group_to_back().unwrap(), vec!["player1", "player2"]);
     /// assert_eq!(q.get_queue(), vec!["player3", "player1", "player2"]);
     /// ```
-    pub fn next_group_to_back(&mut self) -> Vec<&'a str> {
+    pub fn next_group_to_back(&mut self) -> Result<Vec<&'a str>, Error> {
         let mut result = Vec::new();
         for _ in 0..self.players {
             if let Some(p) = self.nextone() {
                 result.push(p);
-                self.append(p);
+                self.join(p)?;
             }
         }
-        result
+        Ok(result)
     }
 
-    /// Get the current queue.
+    /// Returns the current queue.
     ///
     /// # Examples
     ///
@@ -198,9 +227,9 @@ impl<'a> Queue<'a> {
     ///
     /// let mut q = Queue::new("", 1).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
-    /// q.append("player3");
+    /// q.join("player1");
+    /// q.join("player2");
+    /// q.join("player3");
     ///
     /// assert_eq!(q.get_queue(), vec!["player1", "player2", "player3"])
     /// ```
@@ -208,7 +237,7 @@ impl<'a> Queue<'a> {
         self.queue.clone().into()
     }
 
-    /// Get the current formatted queue.
+    /// Returns the current formatted queue.
     ///
     /// # Examples
     ///
@@ -219,9 +248,9 @@ impl<'a> Queue<'a> {
     ///
     /// let mut q = Queue::new("", 1).unwrap();
     ///
-    /// q.append("player1");
-    /// q.append("player2");
-    /// q.append("player3");
+    /// q.join("player1");
+    /// q.join("player2");
+    /// q.join("player3");
     ///
     /// assert_eq!(q.format_queue(), "player1 player2 player3")
     /// ```
@@ -241,17 +270,34 @@ mod queue_tests {
     use crate::*;
 
     #[test]
-    fn test_append() -> Result<(), Error> {
+    fn test_new() -> Result<(), Error> {
+        assert_eq!(Queue::new("", 1)?.get_queue(), Vec::<&str>::new());
+        assert!(Queue::new("", 0).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_join() -> Result<(), Error> {
         let mut queue = Queue::new("", 1)?;
-        queue.append("player");
+        queue.join("player")?;
         assert_eq!(queue.get_queue(), vec!["player"]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_quit() -> Result<(), Error> {
+        let mut queue = Queue::new("", 1)?;
+        queue.join("player1")?;
+        queue.join("player2")?;
+        queue.quit("player2");
+        assert_eq!(queue.get_queue(), vec!["player1"]);
         Ok(())
     }
 
     #[test]
     fn test_nextone() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player");
+        queue.join("player")?;
         assert_eq!(queue.nextone(), Some("player"));
         assert_eq!(queue.nextone(), None);
         assert_eq!(queue.get_queue(), Vec::<&str>::new());
@@ -261,10 +307,10 @@ mod queue_tests {
     #[test]
     fn test_nextone_to_back() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player1");
-        queue.append("player2");
-        assert_eq!(queue.nextone_to_back().unwrap(), "player1");
-        assert_eq!(queue.nextone_to_back().unwrap(), "player2");
+        queue.join("player1")?;
+        queue.join("player2")?;
+        assert_eq!(queue.nextone_to_back()?.unwrap(), "player1");
+        assert_eq!(queue.nextone_to_back()?.unwrap(), "player2");
         assert_eq!(queue.get_queue(), vec!["player1", "player2"]);
         Ok(())
     }
@@ -272,9 +318,9 @@ mod queue_tests {
     #[test]
     fn test_next_group() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player1");
-        queue.append("player2");
-        queue.append("player3");
+        queue.join("player1")?;
+        queue.join("player2")?;
+        queue.join("player3")?;
         assert_eq!(queue.next_group(), vec!["player1", "player2"]);
         assert_eq!(queue.next_group(), vec!["player3"]);
         assert_eq!(queue.next_group(), Vec::<&str>::new());
@@ -285,11 +331,11 @@ mod queue_tests {
     #[test]
     fn test_next_group_to_back() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player1");
-        queue.append("player2");
-        queue.append("player3");
-        assert_eq!(queue.next_group_to_back(), vec!["player1", "player2"]);
-        assert_eq!(queue.next_group_to_back(), vec!["player3", "player1"]);
+        queue.join("player1")?;
+        queue.join("player2")?;
+        queue.join("player3")?;
+        assert_eq!(queue.next_group_to_back()?, vec!["player1", "player2"]);
+        assert_eq!(queue.next_group_to_back()?, vec!["player3", "player1"]);
         assert_eq!(queue.get_queue(), vec!["player2", "player3", "player1"]);
         Ok(())
     }
@@ -297,8 +343,8 @@ mod queue_tests {
     #[test]
     fn test_get_queue() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player1");
-        queue.append("player2");
+        queue.join("player1")?;
+        queue.join("player2")?;
         assert_eq!(queue.get_queue(), vec!["player1", "player2"]);
         Ok(())
     }
@@ -306,8 +352,8 @@ mod queue_tests {
     #[test]
     fn test_format_queue() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player1");
-        queue.append("player2");
+        queue.join("player1")?;
+        queue.join("player2")?;
         assert_eq!(queue.format_queue(), "player1 player2");
         Ok(())
     }
@@ -315,8 +361,8 @@ mod queue_tests {
     #[test]
     fn test_fmt() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
-        queue.append("player1");
-        queue.append("player2");
+        queue.join("player1")?;
+        queue.join("player2")?;
         assert_eq!(
             format!("{}", queue),
             "test (2 player(s) each round): player1 player2"
