@@ -16,8 +16,8 @@ mod macros;
 
 #[derive(PartialEq, Debug)]
 pub struct Queue<'a> {
-    pub game: &'a str,
-    pub players: u8,
+    game: &'a str,
+    players: u8,
     queue: VecDeque<&'a str>,
 }
 
