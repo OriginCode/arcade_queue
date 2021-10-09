@@ -31,7 +31,7 @@ impl<'a> fmt::Display for Queue<'a> {
         write!(
             f,
             "{} ({} player(s) each round): {}",
-            self.game, self.players, self.get_queue()
+            self.game, self.players, self.format_queue()
         )
     }
 }
@@ -77,7 +77,7 @@ impl<'a> Queue<'a> {
     /// q.append("player1");
     /// q.append("player2");
     /// 
-    /// assert_eq!(q.get_queue(), "player1 player2");
+    /// assert_eq!(q.format_queue(), "player1 player2");
     /// ```
     #[inline]
     pub fn append(&mut self, player: &'a str) {
@@ -125,7 +125,35 @@ impl<'a> Queue<'a> {
         let mut result = Vec::new();
         for _ in 0..self.players {
             if let Some(p) = self.nextone() {
-                result.push(p)
+                result.push(p);
+            }
+        }
+        result
+    }
+
+    /// Yields the next group of players and push them back to the queue.
+    /// 
+    /// # Examples
+    /// 
+    /// Basic usage:
+    /// 
+    /// ```
+    /// use arcade_queue::Queue;
+    /// let mut q = Queue::new("", 2).unwrap();
+    /// 
+    /// q.append("player1");
+    /// q.append("player2");
+    /// q.append("player3");
+    /// 
+    /// assert_eq!(q.next_to_back(), vec!["player1", "player2"]);
+    /// assert_eq!(q.get_queue(), vec!["player3", "player1", "player2"]);
+    /// ```
+    pub fn next_to_back(&mut self) -> Vec<&'a str> {
+        let mut result = Vec::new();
+        for _ in 0..self.players {
+            if let Some(p) = self.nextone() {
+                result.push(p);
+                self.append(p);
             }
         }
         result
@@ -146,9 +174,30 @@ impl<'a> Queue<'a> {
     /// q.append("player2");
     /// q.append("player3");
     /// 
-    /// assert_eq!(q.get_queue(), "player1 player2 player3")
+    /// assert_eq!(q.get_queue(), vec!["player1", "player2", "player3"])
     /// ```
-    pub fn get_queue(&self) -> String {
+    pub fn get_queue(&self) -> Vec<&'a str> {
+        self.queue.clone().into()
+    }
+
+    /// Get the current formatted queue.
+    /// 
+    /// # Examples
+    /// 
+    /// Basic usage:
+    /// 
+    /// ```
+    /// use arcade_queue::Queue;
+    /// 
+    /// let mut q = Queue::new("", 1).unwrap();
+    /// 
+    /// q.append("player1");
+    /// q.append("player2");
+    /// q.append("player3");
+    /// 
+    /// assert_eq!(q.format_queue(), "player1 player2 player3")
+    /// ```
+    pub fn format_queue(&self) -> String {
         let mut s = String::new();
         for p in self.queue.iter() {
             s.push_str(p);
@@ -218,12 +267,43 @@ mod queue_tests {
     }
 
     #[test]
+    fn test_next_to_back() {
+        let mut queue = Queue {
+            game: "test",
+            players: 2,
+            queue: vecdeque!["player1", "player2", "player3"],
+        };
+        assert_eq!(queue.next_to_back(), vec!["player1", "player2"]);
+        assert_eq!(queue.next_to_back(), vec!["player3", "player1"]);
+        assert_eq!(
+            queue,
+            Queue {
+                game: "test",
+                players: 2,
+                queue: vecdeque!["player2", "player3", "player1"],
+            }
+        );
+    }
+
+    #[test]
     fn test_get_queue() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
         queue.append("player1");
         queue.append("player2");
         assert_eq!(
             queue.get_queue(),
+            vec!["player1", "player2"]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_format_queue() -> Result<(), Error> {
+        let mut queue = Queue::new("test", 2)?;
+        queue.append("player1");
+        queue.append("player2");
+        assert_eq!(
+            queue.format_queue(),
             "player1 player2"
         );
         Ok(())
