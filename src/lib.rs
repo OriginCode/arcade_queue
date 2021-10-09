@@ -39,7 +39,7 @@ impl<'a> fmt::Display for Queue<'a> {
 }
 
 impl<'a> Queue<'a> {
-    /// Creates an empty queue with a game name and a number of players for each round.
+    /// Creates an empty queue with a name to the game and a number of players for each round.
     ///
     /// `players` cannot be less than 1.
     ///
@@ -65,7 +65,7 @@ impl<'a> Queue<'a> {
         })
     }
 
-    /// Appends a player to the end of the queue.
+    /// Adds a player to the end of the queue.
     ///
     /// # Examples
     ///
