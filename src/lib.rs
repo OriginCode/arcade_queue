@@ -147,9 +147,9 @@ impl<'a> Queue<'a> {
     /// q.append("player2");
     /// q.append("player3");
     ///
-    /// assert_eq!(q.next(), vec!["player1", "player2"]);
+    /// assert_eq!(q.next_group(), vec!["player1", "player2"]);
     /// ```
-    pub fn next(&mut self) -> Vec<&'a str> {
+    pub fn next_group(&mut self) -> Vec<&'a str> {
         let mut result = Vec::new();
         for _ in 0..self.players {
             if let Some(p) = self.nextone() {
@@ -173,10 +173,10 @@ impl<'a> Queue<'a> {
     /// q.append("player2");
     /// q.append("player3");
     ///
-    /// assert_eq!(q.next_to_back(), vec!["player1", "player2"]);
+    /// assert_eq!(q.next_group_to_back(), vec!["player1", "player2"]);
     /// assert_eq!(q.get_queue(), vec!["player3", "player1", "player2"]);
     /// ```
-    pub fn next_to_back(&mut self) -> Vec<&'a str> {
+    pub fn next_group_to_back(&mut self) -> Vec<&'a str> {
         let mut result = Vec::new();
         for _ in 0..self.players {
             if let Some(p) = self.nextone() {
@@ -270,26 +270,26 @@ mod queue_tests {
     }
 
     #[test]
-    fn test_next() -> Result<(), Error> {
+    fn test_next_group() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
         queue.append("player1");
         queue.append("player2");
         queue.append("player3");
-        assert_eq!(queue.next(), vec!["player1", "player2"]);
-        assert_eq!(queue.next(), vec!["player3"]);
-        assert_eq!(queue.next(), Vec::<&str>::new());
+        assert_eq!(queue.next_group(), vec!["player1", "player2"]);
+        assert_eq!(queue.next_group(), vec!["player3"]);
+        assert_eq!(queue.next_group(), Vec::<&str>::new());
         assert_eq!(queue.get_queue(), Vec::<&str>::new());
         Ok(())
     }
 
     #[test]
-    fn test_next_to_back() -> Result<(), Error> {
+    fn test_next_group_to_back() -> Result<(), Error> {
         let mut queue = Queue::new("test", 2)?;
         queue.append("player1");
         queue.append("player2");
         queue.append("player3");
-        assert_eq!(queue.next_to_back(), vec!["player1", "player2"]);
-        assert_eq!(queue.next_to_back(), vec!["player3", "player1"]);
+        assert_eq!(queue.next_group_to_back(), vec!["player1", "player2"]);
+        assert_eq!(queue.next_group_to_back(), vec!["player3", "player1"]);
         assert_eq!(queue.get_queue(), vec!["player2", "player3", "player1"]);
         Ok(())
     }
