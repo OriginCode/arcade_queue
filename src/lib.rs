@@ -81,7 +81,7 @@ impl<'a> Queue<'a> {
     /// q.join("player1");
     /// q.join("player2");
     ///
-    /// assert_eq!(q.format_queue(), "player1 player2");
+    /// assert_eq!(q.format_queue(), "player1, player2");
     /// ```
     #[inline]
     pub fn join(&mut self, player: &'a str) -> Result<(), QueueError> {
@@ -107,7 +107,7 @@ impl<'a> Queue<'a> {
     /// q.join("player1");
     /// q.join("player2");
     ///
-    /// assert_eq!(q.format_queue(), "player1 player2");
+    /// assert_eq!(q.format_queue(), "player1, player2");
     /// ```
     #[inline]
     pub fn quit(&mut self, player: &'a str) {
@@ -154,7 +154,7 @@ impl<'a> Queue<'a> {
     /// ```
     #[inline]
     pub fn nextone_to_back(&mut self) -> Result<Option<&'a str>, QueueError> {
-        let player = self.queue.pop_front();
+        let player = self.nextone();
         if let Some(p) = player {
             self.join(p)?;
         }
@@ -207,9 +207,8 @@ impl<'a> Queue<'a> {
     pub fn next_group_to_back(&mut self) -> Result<Vec<&'a str>, QueueError> {
         let mut result = Vec::new();
         for _ in 0..self.players {
-            if let Some(p) = self.nextone() {
+            if let Some(p) = self.nextone_to_back()? {
                 result.push(p);
-                self.join(p)?;
             }
         }
         Ok(result)
@@ -251,16 +250,10 @@ impl<'a> Queue<'a> {
     /// q.join("player2");
     /// q.join("player3");
     ///
-    /// assert_eq!(q.format_queue(), "player1 player2 player3")
+    /// assert_eq!(q.format_queue(), "player1, player2, player3")
     /// ```
     pub fn format_queue(&self) -> String {
-        let mut s = String::new();
-        for p in self.queue.iter() {
-            s.push_str(p);
-            s.push(' ');
-        }
-        s.pop();
-        s
+        self.get_queue().join(", ")
     }
 }
 
@@ -353,7 +346,7 @@ mod queue_tests {
         let mut queue = Queue::new("test", 2)?;
         queue.join("player1")?;
         queue.join("player2")?;
-        assert_eq!(queue.format_queue(), "player1 player2");
+        assert_eq!(queue.format_queue(), "player1, player2");
         Ok(())
     }
 
@@ -364,7 +357,7 @@ mod queue_tests {
         queue.join("player2")?;
         assert_eq!(
             format!("{}", queue),
-            "test (2 player(s) each round): player1 player2"
+            "test (2 player(s) each round): player1, player2"
         );
         Ok(())
     }
