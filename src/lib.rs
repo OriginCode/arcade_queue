@@ -67,7 +67,7 @@ impl<'a> Queue<'a> {
         })
     }
 
-    /// Adds a player to the end of the queue.
+    /// Adds a player to the end of the queue. The player should not be in the queue already.
     ///
     /// # Examples
     ///
