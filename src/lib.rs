@@ -16,10 +16,10 @@ use thiserror::Error;
 mod macros;
 
 #[derive(PartialEq, Debug)]
-pub struct Queue<'a> {
+pub struct Queue<'a, 'b> {
     game: &'a str,
     players: u8,
-    queue: VecDeque<&'a str>,
+    queue: VecDeque<&'b str>,
 }
 
 #[derive(Error, Debug)]
@@ -30,7 +30,7 @@ pub enum QueueError {
     AlreadyInQueueError,
 }
 
-impl<'a> fmt::Display for Queue<'a> {
+impl<'a, 'b> fmt::Display for Queue<'a, 'b> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -42,7 +42,7 @@ impl<'a> fmt::Display for Queue<'a> {
     }
 }
 
-impl<'a> Queue<'a> {
+impl<'a, 'b> Queue<'a, 'b> {
     /// Creates an empty queue with a name to the game and a number of players for each round.
     ///
     /// `players` cannot be less than 1.
@@ -84,7 +84,7 @@ impl<'a> Queue<'a> {
     /// assert_eq!(q.format_queue(), "player1, player2");
     /// ```
     #[inline]
-    pub fn join(&mut self, player: &'a str) -> Result<(), QueueError> {
+    pub fn join(&mut self, player: &'b str) -> Result<(), QueueError> {
         if !self.queue.contains(&player) {
             self.queue.push_back(player);
             Ok(())
@@ -108,9 +108,13 @@ impl<'a> Queue<'a> {
     /// q.join("player2");
     ///
     /// assert_eq!(q.format_queue(), "player1, player2");
+    ///
+    /// q.quit("player1");
+    ///
+    /// assert_eq!(q.format_queue(), "player2");
     /// ```
     #[inline]
-    pub fn quit(&mut self, player: &'a str) {
+    pub fn quit(&mut self, player: &'b str) {
         self.queue.retain(|p| *p != player);
     }
 
@@ -131,7 +135,7 @@ impl<'a> Queue<'a> {
     /// assert_eq!(q.nextone().unwrap(), "player1");
     /// ```
     #[inline]
-    pub fn nextone(&mut self) -> Option<&'a str> {
+    pub fn nextone(&mut self) -> Option<&'b str> {
         self.queue.pop_front()
     }
 
@@ -153,7 +157,7 @@ impl<'a> Queue<'a> {
     /// assert_eq!(q.get_queue(), vec!["player2", "player1"]);
     /// ```
     #[inline]
-    pub fn nextone_to_back(&mut self) -> Result<Option<&'a str>, QueueError> {
+    pub fn nextone_to_back(&mut self) -> Result<Option<&'b str>, QueueError> {
         let player = self.nextone();
         if let Some(p) = player {
             self.join(p)?;
@@ -177,7 +181,7 @@ impl<'a> Queue<'a> {
     ///
     /// assert_eq!(q.next_group(), vec!["player1", "player2"]);
     /// ```
-    pub fn next_group(&mut self) -> Vec<&'a str> {
+    pub fn next_group(&mut self) -> Vec<&'b str> {
         let mut result = Vec::new();
         for _ in 0..self.players {
             if let Some(p) = self.nextone() {
@@ -204,7 +208,7 @@ impl<'a> Queue<'a> {
     /// assert_eq!(q.next_group_to_back().unwrap(), vec!["player1", "player2"]);
     /// assert_eq!(q.get_queue(), vec!["player3", "player1", "player2"]);
     /// ```
-    pub fn next_group_to_back(&mut self) -> Result<Vec<&'a str>, QueueError> {
+    pub fn next_group_to_back(&mut self) -> Result<Vec<&'b str>, QueueError> {
         let mut result = Vec::new();
         for _ in 0..self.players {
             if let Some(p) = self.nextone_to_back()? {
@@ -231,7 +235,7 @@ impl<'a> Queue<'a> {
     ///
     /// assert_eq!(q.get_queue(), vec!["player1", "player2", "player3"])
     /// ```
-    pub fn get_queue(&self) -> Vec<&'a str> {
+    pub fn get_queue(&self) -> Vec<&'b str> {
         self.queue.clone().into()
     }
 
